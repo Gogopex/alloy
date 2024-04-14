@@ -60,8 +60,8 @@ int main() {
 
   NsError *error = NULL;
 
-  MtLibrary *lib =
-      mtNewLibraryWithSource(device, matrixAdditionShader, NULL, &error);
+  MtLibrary *lib = mtNewLibraryWithSource(device, (char *)matrixAdditionShader,
+                                          NULL, *error);
   if (!lib) {
     printf("Failed to create library from source\n");
     return -1;
@@ -74,7 +74,7 @@ int main() {
   }
 
   MtComputePipelineState *pipelineState =
-      mtNewComputePipelineStateWithFunction(device, addFunc, &error);
+      mtNewComputePipelineStateWithFunction(device, addFunc, error);
   if (!pipelineState) {
     printf("Failed to create compute pipeline state\n");
     return -1;
@@ -125,7 +125,7 @@ int main() {
   // Print result
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 2; j++) {
-      printf("%f ", result.data[i * 2 + j]);
+      printf("%f ", *result.data[i * 2 + j]);
     }
     printf("\n");
   }

@@ -5,7 +5,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
-#import "cmt/types.h"
+#import "../types.h"
 
 MT_HIDE
 MT_INLINE

@@ -9,9 +9,9 @@
 extern "C" {
 #endif
 
-#include "cmt/common.h"
-#include "cmt/types.h"
-#include "cmt/enums.h"
+#include "../common.h"
+#include "../types.h"
+#include "../enums.h"
 
 MT_EXPORT
 MT_API_AVAILABLE(mt_macos(10.11), mt_ios(8.0))
