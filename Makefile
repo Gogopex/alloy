@@ -1,18 +1,16 @@
-# Compiler settings - Can change to clang if preferred
-CC = gcc
+# Compiler settings - Using clang for Objective-C support
+CC = clang
 
 # Compiler flags
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude
+CFLAGS = -Wall -Wextra -std=c11 -Iinclude/cmt
 
 # Linker flags
-LDFLAGS = -Llib -lcmt_lib -framework Metal
+LDFLAGS = -Llib -lcmt -lobjc -framework Metal -framework Foundation -framework CoreGraphics
 
-# Source directory and executable name
 SRC_DIR = src
-EXEC = Alloy
+EXEC = alloy
 
-# Find all source files in the source directory, sorted by most recently modified
-SOURCES = $(shell find $(SRC_DIR) -name '*.c' | sort -k 1nr | cut -f2-)
+SOURCES = src/main.c src/error_handling.m
 
 # Default target
 all: $(EXEC)

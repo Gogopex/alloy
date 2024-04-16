@@ -4,6 +4,7 @@
 #include "../include/cmt/command_queue.h"
 #include "../include/cmt/compute/compute-pipeline.h"
 #include "../include/cmt/device.h"
+#include "../include/cmt/error_handling.h"
 #include "../include/cmt/kernels/library.h"
 #include "../include/cmt/memory/buffer.h"
 #include "../include/cmt/rendering/pipeline.h"
@@ -32,7 +33,9 @@ Matrix createMatrix(int rows, int cols) {
   mat.rows = rows;
   mat.cols = cols;
   mat.data = malloc(rows * sizeof(float *));
-
+  for (int i = 0; i < rows; i++) {
+    mat.data[i] = malloc(cols * sizeof(float));
+  }
   return mat;
 }
 
@@ -60,10 +63,13 @@ int main() {
 
   NsError *error = NULL;
 
+  printf("Creating library\n");
   MtLibrary *lib = mtNewLibraryWithSource(device, (char *)matrixAdditionShader,
-                                          NULL, *error);
+                                          NULL, &error);
   if (!lib) {
-    printf("Failed to create library from source\n");
+    if (error) {
+      printNSError(error);
+    }
     return -1;
   }
 
@@ -102,8 +108,8 @@ int main() {
   MtBuffer *bufferC = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
                                                   MtResourceStorageModeShared);
 
-  memcpy(mtBufferContents(bufferA), mat1.data, sizeof(float) * 4);
-  memcpy(mtBufferContents(bufferB), mat2.data, sizeof(float) * 4);
+  memcpy(mtBufferContents(bufferA), mat1.data[0], sizeof(float) * 4);
+  memcpy(mtBufferContents(bufferB), mat2.data[0], sizeof(float) * 4);
 
   MtCommandBuffer *commandBuffer = mtNewCommandBuffer(cmdQueue);
   MtComputeCommandEncoder *encoder = mtNewComputeCommandEncoder(commandBuffer);
