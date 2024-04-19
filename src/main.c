@@ -15,7 +15,7 @@
 const char *matrixAdditionShader =
     "#include <metal_stdlib>\n"
     "using namespace metal;\n"
-    "kernel void matrix_addition(const device float* A [[buffer(0)]]),\n"
+    "kernel void matrix_addition(const device float* A [[buffer(0)]],\n"
     "                            const device float* B [[buffer(1)]],\n"
     "                            device float* C [[buffer(2)]],\n"
     "                            uint id [[thread_position_in_grid]]) {\n"
@@ -33,6 +33,9 @@ Matrix createMatrix(int rows, int cols) {
   mat.rows = rows;
   mat.cols = cols;
   mat.data = malloc(rows * sizeof(float *));
+  if (!mat.data) {
+    printf("Memory allocation failed\n");
+  }
   for (int i = 0; i < rows; i++) {
     mat.data[i] = malloc(cols * sizeof(float));
   }
@@ -54,6 +57,8 @@ int main() {
     return -1;
   }
 
+  printf("Created device\n");
+
   // Create a command queue
   MtCommandQueue *cmdQueue = mtNewCommandQueue(device);
   if (!cmdQueue) {
@@ -66,29 +71,51 @@ int main() {
   printf("Creating library\n");
   MtLibrary *lib = mtNewLibraryWithSource(device, (char *)matrixAdditionShader,
                                           NULL, &error);
+
   if (!lib) {
+    printf("Failed to create library\n");
     if (error) {
       printNSError(error);
     }
     return -1;
   }
 
+  printf("Created library\n");
+
   MtFunction *addFunc = mtNewFunctionWithName(lib, "matrix_addition");
+
   if (!addFunc) {
     printf("Failed to retrieve function from library\n");
     return -1;
   }
 
+  printf("Retrived function fom library");
+
   MtComputePipelineState *pipelineState =
       mtNewComputePipelineStateWithFunction(device, addFunc, error);
   if (!pipelineState) {
     printf("Failed to create compute pipeline state\n");
+    if (error) {
+      printNSError(error);
+    }
     return -1;
   }
 
   Matrix mat1 = createMatrix(2, 2);
+  if (!mat1.data) {
+    printf("Failed to allocate matrix 1\n");
+    return -1;
+  }
   Matrix mat2 = createMatrix(2, 2);
+  if (!mat2.data) {
+    printf("Failed to allocate matrix 2\n");
+    return -1;
+  }
   Matrix result = createMatrix(2, 2);
+  if (!result.data) {
+    printf("Failed to allocate result\n");
+    return -1;
+  }
 
   // Example data
   *mat1.data[0] = 1.0f;
@@ -103,10 +130,23 @@ int main() {
 
   MtBuffer *bufferA = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
                                                   MtResourceStorageModeShared);
+  if (!bufferA) {
+    printf("Failed to create buffer A\n");
+    return -1;
+  }
+
   MtBuffer *bufferB = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
                                                   MtResourceStorageModeShared);
+  if (!bufferB) {
+    printf("Failed to create buffer B\n");
+    return -1;
+  }
   MtBuffer *bufferC = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
                                                   MtResourceStorageModeShared);
+  if (!bufferC) {
+    printf("Failed to create buffer C\n");
+    return -1;
+  }
 
   memcpy(mtBufferContents(bufferA), mat1.data[0], sizeof(float) * 4);
   memcpy(mtBufferContents(bufferB), mat2.data[0], sizeof(float) * 4);
