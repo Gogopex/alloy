@@ -29,29 +29,17 @@ typedef struct {
 } Matrix;
 
 Matrix createMatrix(int rows, int cols) {
-    Matrix mat;
-    mat.rows = rows;
-    mat.cols = cols;
-    mat.data = malloc(rows * sizeof(float*));
-    if (!mat.data) {
-        printf("Failed to allocate memory for data pointers.\n");
-        return mat;
-    }
-
-    for (int i = 0; i < rows; i++) {
-        mat.data[i] = malloc(cols * sizeof(float));
-        if (!mat.data[i]) {
-            printf("Failed to allocate memory for row %d.\n", i);
-            // Clean up previously allocated memory
-            for (int j = 0; j < i; j++) {
-                free(mat.data[j]);
-            }
-            free(mat.data);
-            mat.data = NULL;
-            return mat;
-        }
-    }
-    return mat;
+  Matrix mat;
+  mat.rows = rows;
+  mat.cols = cols;
+  mat.data = malloc(rows * sizeof(float *));
+  if (!mat.data) {
+    printf("Memory allocation failed\n");
+  }
+  for (int i = 0; i < rows; i++) {
+    mat.data[i] = malloc(cols * sizeof(float));
+  }
+  return mat;
 }
 
 void freeMatrix(Matrix mat) {
@@ -128,23 +116,13 @@ int main() {
     printf("Failed to allocate result\n");
     return -1;
   }
-  for (int i = 0; i < 2; i++) {
-    if (!result.data[i]) {
-      printf("Failed to allocate memory for row %d of result matrix.\n", i);
-      return -1;
-    }
-  }
 
   // Example data
   *mat1.data[0] = 1.0f;
   *mat1.data[1] = 2.0f;
-  *mat1.data[2] = 3.0f;
-  *mat1.data[3] = 4.0f;
 
   *mat2.data[0] = 5.0f;
   *mat2.data[1] = 6.0f;
-  *mat2.data[2] = 7.0f;
-  *mat2.data[3] = 8.0f;
 
   MtBuffer *bufferA = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
                                                   MtResourceStorageModeShared);
@@ -187,16 +165,11 @@ int main() {
   memcpy(result.data, mtBufferContents(bufferC), sizeof(float) * 4);
 
   // Print result
-  printf("Result:\n");
   for (int i = 0; i < 2; i++) {
-      if (result.data[i] == NULL) {
-          printf("Row %d is not allocated.\n", i);
-          continue;
-      }
-      for (int j = 0; j < 2; j++) {
-          printf("%f ", result.data[i][j]);
-      }
-      printf("\n");
+    for (int j = 0; j < 2; j++) {
+      printf("%f ", result.data[i][j]);
+    }
+    printf("\n");
   }
 
   freeMatrix(mat1);

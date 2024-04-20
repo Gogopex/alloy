@@ -10,7 +10,7 @@ LDFLAGS = -Llib -lcmt -lobjc -framework Metal -framework Foundation -framework C
 SRC_DIR = src
 EXEC = alloy
 
-SOURCES = src/main.c src/error_handling.m
+SOURCES = src/alloy.c src/error_handling.m
 
 # Default target
 all: $(EXEC)
@@ -22,6 +22,9 @@ $(EXEC): $(SOURCES)
 # Clean up
 clean:
 	rm -f $(EXEC)
+
+debug: CFLAGS += -g
+debug: $(EXEC)
 
 # Phony targets
 .PHONY: all clean
