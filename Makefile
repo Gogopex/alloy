@@ -21,7 +21,8 @@ $(EXEC): $(SOURCES)
 
 # Clean up
 clean:
-	rm -f $(EXEC)
+	rm -f $(EXEC) 
+	rm -rf $(EXEC).dSYM
 
 debug: CFLAGS += -g
 debug: $(EXEC)

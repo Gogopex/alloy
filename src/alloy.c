@@ -29,17 +29,25 @@ typedef struct {
 } Matrix;
 
 Matrix createMatrix(int rows, int cols) {
-  Matrix mat;
-  mat.rows = rows;
-  mat.cols = cols;
-  mat.data = malloc(rows * sizeof(float *));
-  if (!mat.data) {
-    printf("Memory allocation failed\n");
-  }
-  for (int i = 0; i < rows; i++) {
-    mat.data[i] = malloc(cols * sizeof(float));
-  }
-  return mat;
+    Matrix mat = {rows, cols, malloc(rows * sizeof(float*))};
+    if (!mat.data) {
+        printf("Failed to allocate memory for data pointers.\n");
+        return mat;
+    }
+
+    for (int i = 0; i < rows; i++) {
+        mat.data[i] = malloc(cols * sizeof(float));
+        if (!mat.data[i]) {
+            printf("Failed to allocate memory for row %d.\n", i);
+            for (int j = 0; j < i; j++) {
+                free(mat.data[j]);
+            }
+            free(mat.data);
+            mat.data = NULL;
+            return mat;
+        }
+    }
+    return mat;
 }
 
 void freeMatrix(Matrix mat) {
@@ -57,9 +65,6 @@ int main() {
     return -1;
   }
 
-  printf("Created device\n");
-
-  // Create a command queue
   MtCommandQueue *cmdQueue = mtNewCommandQueue(device);
   if (!cmdQueue) {
     printf("Failed to create command queue\n");
@@ -67,11 +72,7 @@ int main() {
   }
 
   NsError *error = NULL;
-
-  printf("Creating library\n");
-  MtLibrary *lib = mtNewLibraryWithSource(device, (char *)matrixAdditionShader,
-                                          NULL, &error);
-
+  MtLibrary *lib = mtNewLibraryWithSource(device, (char *)matrixAdditionShader, NULL, &error);
   if (!lib) {
     printf("Failed to create library\n");
     if (error) {
@@ -80,19 +81,13 @@ int main() {
     return -1;
   }
 
-  printf("Created library\n");
-
   MtFunction *addFunc = mtNewFunctionWithName(lib, "matrix_addition");
-
   if (!addFunc) {
     printf("Failed to retrieve function from library\n");
     return -1;
   }
 
-  printf("Retrived function fom library");
-
-  MtComputePipelineState *pipelineState =
-      mtNewComputePipelineStateWithFunction(device, addFunc, error);
+  MtComputePipelineState *pipelineState = mtNewComputePipelineStateWithFunction(device, addFunc, error);
   if (!pipelineState) {
     printf("Failed to create compute pipeline state\n");
     if (error) {
@@ -102,71 +97,48 @@ int main() {
   }
 
   Matrix mat1 = createMatrix(2, 2);
-  if (!mat1.data) {
-    printf("Failed to allocate matrix 1\n");
-    return -1;
-  }
   Matrix mat2 = createMatrix(2, 2);
-  if (!mat2.data) {
-    printf("Failed to allocate matrix 2\n");
-    return -1;
-  }
   Matrix result = createMatrix(2, 2);
-  if (!result.data) {
-    printf("Failed to allocate result\n");
+
+  if (!mat1.data || !mat2.data || !result.data) {
+    printf("Failed to allocate matrices\n");
     return -1;
   }
 
-  // Example data
-  *mat1.data[0] = 1.0f;
-  *mat1.data[1] = 2.0f;
+  mat1.data[0][0] = 1.0f; mat1.data[0][1] = 2.0f;
+  mat2.data[0][0] = 5.0f; mat2.data[0][1] = 6.0f;
 
-  *mat2.data[0] = 5.0f;
-  *mat2.data[1] = 6.0f;
+  MtBuffer *bufferA = mtDeviceNewBufferWithLength(device, sizeof(float) * 4, MtResourceStorageModeShared);
+  MtBuffer *bufferB = mtDeviceNewBufferWithLength(device, sizeof(float) * 4, MtResourceStorageModeShared);
+  MtBuffer *bufferC = mtDeviceNewBufferWithLength(device, sizeof(float) * 4, MtResourceStorageModeShared);
 
-  MtBuffer *bufferA = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
-                                                  MtResourceStorageModeShared);
-  if (!bufferA) {
-    printf("Failed to create buffer A\n");
+  if (!bufferA || !bufferB || !bufferC) {
+    printf("Failed to create buffers\n");
     return -1;
   }
-
-  MtBuffer *bufferB = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
-                                                  MtResourceStorageModeShared);
-  if (!bufferB) {
-    printf("Failed to create buffer B\n");
-    return -1;
-  }
-  MtBuffer *bufferC = mtDeviceNewBufferWithLength(device, sizeof(float) * 4,
-                                                  MtResourceStorageModeShared);
-  if (!bufferC) {
-    printf("Failed to create buffer C\n");
-    return -1;
-  }
-
+  
   memcpy(mtBufferContents(bufferA), mat1.data[0], sizeof(float) * 4);
   memcpy(mtBufferContents(bufferB), mat2.data[0], sizeof(float) * 4);
 
-  MtCommandBuffer *commandBuffer = mtNewCommandBuffer(cmdQueue);
-  MtComputeCommandEncoder *encoder = mtNewComputeCommandEncoder(commandBuffer);
-  mtComputeCommandEncoderSetComputePipelineState(encoder, pipelineState);
-  mtComputeCommandEncoderSetBufferOffsetAtIndex(encoder, bufferA, 0, 0);
-  mtComputeCommandEncoderSetBufferOffsetAtIndex(encoder, bufferB, 1, 0);
-  mtComputeCommandEncoderSetBufferOffsetAtIndex(encoder, bufferC, 2, 0);
+  MtCommandBuffer *cmdBuffer = mtCommandQueueCommandBuffer(cmdQueue);
+  MtCommandEncoder *computeEncoder = mtCommandBufferComputeEncoder(cmdBuffer);
 
-  mtComputeCommandEncoderDispatchThreadgroups_threadsPerThreadgroup(
-      encoder, (MtSize){.width = 4, .height = 1, .depth = 1},
-      (MtSize){.width = 1, .height = 1, .depth = 1});
+  mtSetComputePipelineState(computeEncoder, pipelineState);
+  mtSetBuffer(computeEncoder, bufferA, 0, 0);
+  mtSetBuffer(computeEncoder, bufferB, 0, 1);
+  mtSetBuffer(computeEncoder, bufferC, 0, 2);
 
-  mtComputeCommandEncoderEndEncoding(encoder);
-  mtCommandBufferCommit(commandBuffer);
-  mtCommandBufferWaitUntilCompleted(commandBuffer);
+  mtDispatchThreads(computeEncoder, (MtSize){2, 2, 1}, (MtSize){1, 1, 1});
 
-  memcpy(result.data, mtBufferContents(bufferC), sizeof(float) * 4);
+  mtEndEncoding(computeEncoder);
+  mtCommitCommandBuffer(cmdBuffer);
+  mtWaitUntilCompleted(cmdBuffer);
 
-  // Print result
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  memcpy(result.data[0], mtBufferContents(bufferC), sizeof(float) * 4);
+
+  printf("Result Matrix:\n");
+  for (int i = 0; i < result.rows; i++) {
+    for (int j = 0; j < result.cols; j++) {
       printf("%f ", result.data[i][j]);
     }
     printf("\n");
@@ -175,15 +147,16 @@ int main() {
   freeMatrix(mat1);
   freeMatrix(mat2);
   freeMatrix(result);
-  mtRelease(bufferA);
-  mtRelease(bufferB);
-  mtRelease(bufferC);
-  mtRelease(commandBuffer);
-  mtRelease(pipelineState);
-  mtRelease(addFunc);
-  mtRelease(lib);
-  mtRelease(cmdQueue);
-  mtRelease(device);
+  mtReleaseBuffer(bufferA);
+  mtReleaseBuffer(bufferB);
+  mtReleaseBuffer(bufferC);
+  mtReleaseCommandBuffer(cmdBuffer);
+  mtReleaseCommandEncoder(computeEncoder);
+  mtReleaseComputePipelineState(pipelineState);
+  mtReleaseFunction(addFunc);
+  mtReleaseLibrary(lib);
+  mtReleaseCommandQueue(cmdQueue);
+  mtReleaseDevice(device);
 
   return 0;
 }
