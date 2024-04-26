@@ -2,7 +2,7 @@
 CC = clang
 
 # Compiler flags
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude/cmt
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude/cmt
 
 # Linker flags
 LDFLAGS = -Llib -lcmt -lobjc -framework Metal -framework Foundation -framework CoreGraphics

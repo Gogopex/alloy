@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Shader for matrix addition using Metal
 const char *matrixAdditionShader =
     "#include <metal_stdlib>\n"
     "using namespace metal;\n"
@@ -29,7 +30,7 @@ typedef struct {
 } Matrix;
 
 Matrix createMatrix(int rows, int cols) {
-    Matrix mat = {rows, cols, malloc(rows * sizeof(float*))};
+    Matrix mat = {.rows = rows, .cols = cols, .data = malloc(rows * sizeof(float*))};
     if (!mat.data) {
         printf("Failed to allocate memory for data pointers.\n");
         return mat;
@@ -54,7 +55,6 @@ void freeMatrix(Matrix mat) {
   for (int i = 0; i < mat.rows; i++) {
     free(mat.data[i]);
   }
-
   free(mat.data);
 }
 
@@ -87,7 +87,10 @@ int main() {
     return -1;
   }
 
-  MtComputePipelineState *pipelineState = mtNewComputePipelineStateWithFunction(device, addFunc, error);
+  printf("Retrived function fom library");
+
+  MtComputePipelineState *pipelineState =
+      mtNewComputePipelineStateWithFunction(device, addFunc, error);
   if (!pipelineState) {
     printf("Failed to create compute pipeline state\n");
     if (error) {
@@ -113,10 +116,10 @@ int main() {
   MtBuffer *bufferC = mtDeviceNewBufferWithLength(device, sizeof(float) * 4, MtResourceStorageModeShared);
 
   if (!bufferA || !bufferB || !bufferC) {
-    printf("Failed to create buffers\n");
+    printf("Failed to create buffer\n");
     return -1;
   }
-  
+
   memcpy(mtBufferContents(bufferA), mat1.data[0], sizeof(float) * 4);
   memcpy(mtBufferContents(bufferB), mat2.data[0], sizeof(float) * 4);
 
