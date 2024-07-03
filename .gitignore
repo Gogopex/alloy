@@ -2,3 +2,4 @@ build/
 .cache/
 .cache
 .alloy.dSYM/
+.DS_STORE
