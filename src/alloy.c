@@ -168,8 +168,6 @@ MtBuffer *createBuffer(MtDevice *device, size_t size,
 }
 
 MtLibrary *createLibraryFromFile(MtDevice *device, const char *filename) {
-  // In a real implementation, read the shader from a file
-  // For this example, we'll use the hardcoded shader strings
   NsError *error = NULL;
   MtLibrary *lib = NULL;
 
@@ -254,7 +252,7 @@ int performMatrixOperation(MtDevice *device, MtCommandQueue *cmdQueue,
   }
 
   MtSize gridSize = {a->cols, a->rows, 1};
-  MtSize threadGroupSize = {16, 16, 1}; // Adjust based on your GPU capabilities
+  MtSize threadGroupSize = {16, 16, 1};
   mtDispatchThreads(computeEncoder, gridSize, threadGroupSize);
 
   mtEndEncoding(computeEncoder);
